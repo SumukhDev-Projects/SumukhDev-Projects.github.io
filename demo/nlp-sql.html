@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NLP-SQL Analyst · Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#07080E;--bg2:#0C0D17;--bg3:#11121F;--acc:#AAFF00;--acc-d:rgba(170,255,0,.08);--text:#E8E8F0;--sub:#8888A0;--dim:#404058;--line:rgba(255,255,255,.07);--green:#27C93F;--coral:#FF6565}
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+    a{text-decoration:none;color:inherit}
+    nav{height:54px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);flex-shrink:0}
+    .nav-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:700}.nav-title em{color:var(--acc);font-style:normal}
+    .nav-back{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);letter-spacing:.06em;transition:color .2s}.nav-back:hover{color:var(--text)}
+    .wrap{display:flex;flex:1;overflow:hidden}
+    .left{width:300px;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:24px;flex-shrink:0;overflow-y:auto}
+    .panel-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--acc);letter-spacing:.18em;text-transform:uppercase;margin-bottom:14px}
+    .left-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;letter-spacing:-.01em;margin-bottom:8px}
+    .left-sub{color:var(--sub);font-size:13px;line-height:1.65;margin-bottom:20px}
+    textarea#nlpInput{width:100%;background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;resize:none;height:76px;outline:none;transition:border-color .2s;margin-bottom:10px}
+    textarea#nlpInput:focus{border-color:rgba(170,255,0,.35)}
+    .ask-btn{width:100%;background:var(--acc);color:#000;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:11px;border-radius:7px;border:none;cursor:pointer;transition:background .2s;letter-spacing:.04em;margin-bottom:18px}
+    .ask-btn:hover{background:#c4ff33}
+    .quick-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+    .quick-list{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+    .quick-btn{background:var(--bg3);border:1px solid var(--line);border-radius:7px;padding:9px 12px;font-size:12px;color:var(--sub);cursor:pointer;text-align:left;font-family:'Inter',sans-serif;transition:all .2s}
+    .quick-btn:hover{border-color:rgba(170,255,0,.3);color:var(--acc)}
+    .schema-box{background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:14px}
+    .schema-title{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+    .schema-row{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);padding:3px 0}.schema-row span{color:var(--acc)}
+    .right{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    .terminal{flex:1;background:var(--bg);padding:24px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.75}
+    .t-prompt{color:var(--acc)}.t-comment{color:var(--dim)}.t-keyword{color:#5BA4F5}.t-string{color:#FFD93D}.t-val{color:var(--green)}.t-cursor{display:inline-block;width:8px;height:13px;background:var(--acc);animation:blink .9s step-end infinite;vertical-align:text-bottom;margin-left:2px}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+    .t-badge{display:inline-block;font-size:10px;padding:3px 9px;border-radius:4px;margin:2px 3px}
+    .badge-ok{background:rgba(39,201,63,.1);border:1px solid rgba(39,201,63,.25);color:var(--green)}
+    .badge-acc{background:var(--acc-d);border:1px solid rgba(170,255,0,.2);color:var(--acc)}
+    .results-panel{background:var(--bg2);border-top:1px solid var(--line);flex-shrink:0;max-height:210px;overflow:auto}
+    .results-header{padding:10px 20px;border-bottom:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);letter-spacing:.1em;text-transform:uppercase;display:flex;gap:14px;align-items:center}
+    table.rt{width:100%;border-collapse:collapse}
+    table.rt th{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);padding:8px 20px;text-align:left;border-bottom:1px solid var(--line);letter-spacing:.06em;text-transform:uppercase}
+    table.rt td{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);padding:7px 20px;border-bottom:1px solid rgba(255,255,255,.03)}
+    table.rt tr:hover td{background:rgba(255,255,255,.02)}
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-title">NLP<em>→</em>SQL Analyst</div>
+  <a href="../index.html#projects" class="nav-back">← Back to portfolio</a>
+</nav>
+<div class="wrap">
+  <div class="left">
+    <div class="panel-label">Interactive Demo</div>
+    <div class="left-title">Ask in plain English.</div>
+    <p class="left-sub">Type a business question. Claude generates SQL, the backend validates it read-only, results render below.</p>
+    <textarea id="nlpInput" placeholder="e.g. Who are the top 5 sales reps by revenue?"></textarea>
+    <button class="ask-btn" onclick="runQuery()">Generate SQL + Execute →</button>
+    <div class="quick-label">Try these</div>
+    <div class="quick-list">
+      <button class="quick-btn" onclick="setQ(this)">Top 5 sales reps by total revenue</button>
+      <button class="quick-btn" onclick="setQ(this)">Average order value by region</button>
+      <button class="quick-btn" onclick="setQ(this)">Products with declining sales</button>
+      <button class="quick-btn" onclick="setQ(this)">Customers inactive for 90+ days</button>
+    </div>
+    <div class="schema-box">
+      <div class="schema-title">Schema</div>
+      <div class="schema-row">orders (<span>id</span>, rep_id, region, amount, created_at)</div>
+      <div class="schema-row">reps (<span>id</span>, name, region)</div>
+      <div class="schema-row">products (<span>id</span>, name, category, price)</div>
+      <div class="schema-row">customers (<span>id</span>, name, last_order_at)</div>
+    </div>
+  </div>
+  <div class="right">
+    <div class="terminal" id="terminal">
+      <div style="color:var(--dim)">// NLP-SQL Analyst — read-only mode active · SQLite URI + whitelist enforcement</div>
+      <div>&nbsp;</div>
+      <div><span class="t-prompt">$</span> <span style="color:var(--text)">SELECT version();</span></div>
+      <div style="color:var(--green)">SQLite 3.42 — read-only</div>
+      <div>&nbsp;</div>
+      <div style="color:var(--dim)">// Ready. Enter a question on the left.</div>
+      <div>&nbsp;</div>
+      <div><span class="t-cursor"></span></div>
+    </div>
+    <div class="results-panel" id="resultsPanel" style="display:none">
+      <div class="results-header" id="resultsHeader"></div>
+      <table class="rt" id="resultsTable"></table>
+    </div>
+  </div>
+</div>
+<script>
+const QUERIES={
+  'top 5 sales':{sql:`SELECT r.name,
+       COUNT(o.id)        AS orders,
+       SUM(o.amount)      AS total_revenue
+FROM   reps r
+JOIN   orders o ON o.rep_id = r.id
+GROUP  BY r.name
+ORDER  BY total_revenue DESC
+LIMIT  5;`,rows:[['Alice Nguyen','142','$218,450'],['Marcus Bell','118','$196,230'],['Priya Sharma','133','$184,910'],['James Okafor','97','$161,780'],['Clara Méndez','104','$148,200']],cols:['rep_name','orders','total_revenue'],rt:'0.041s',n:5},
+  'average order':{sql:`SELECT region,
+       ROUND(AVG(amount), 2) AS avg_order_value,
+       COUNT(*)              AS num_orders
+FROM   orders
+GROUP  BY region
+ORDER  BY avg_order_value DESC;`,rows:[['West','$1,842','3,211'],['Northeast','$1,694','4,108'],['Midwest','$1,521','2,874'],['South','$1,388','3,647']],cols:['region','avg_order_value','num_orders'],rt:'0.028s',n:4},
+  'declining':{sql:`WITH monthly AS (
+  SELECT p.name,
+         strftime('%Y-%m', o.created_at) AS mo,
+         SUM(o.amount) AS rev
+  FROM   products p
+  JOIN   orders o ON o.product_id = p.id
+  WHERE  o.created_at >= date('now','-3 months')
+  GROUP  BY p.name, mo
+)
+SELECT name, last_month, prev_month
+FROM   (...)
+HAVING last_month < prev_month;`,rows:[['Legacy Pro Pack','$18,200','$31,400'],['Starter Bundle','$9,870','$14,210'],['Essentials Kit','$6,540','$9,880']],cols:['product','last_month','prev_month'],rt:'0.063s',n:3},
+  'inactive':{sql:`SELECT name,
+       last_order_at,
+       julianday('now') - julianday(last_order_at) AS days_inactive
+FROM   customers
+WHERE  last_order_at < date('now', '-90 days')
+ORDER  BY days_inactive DESC
+LIMIT  10;`,rows:[['TechNova LLC','2025-11-02','127 days'],['Bright Futures Inc','2025-11-14','115 days'],['Summit Analytics','2025-11-21','108 days'],['Coastline Co','2025-12-01','98 days'],['Delta Works','2025-12-08','91 days']],cols:['customer','last_order_at','days_inactive'],rt:'0.019s',n:5}
+};
+function setQ(btn){document.getElementById('nlpInput').value=btn.textContent}
+function matchQuery(q){const lq=q.toLowerCase();if(lq.includes('top')&&lq.includes('sales'))return QUERIES['top 5 sales'];if(lq.includes('average')||lq.includes('region'))return QUERIES['average order'];if(lq.includes('declin'))return QUERIES['declining'];if(lq.includes('inactive')||lq.includes('90'))return QUERIES['inactive'];return QUERIES['top 5 sales']}
+function delay(ms){return new Promise(r=>setTimeout(r,ms))}
+function hl(line){return line.replace(/\b(SELECT|FROM|JOIN|ON|WHERE|GROUP BY|ORDER BY|HAVING|LIMIT|WITH|AS|AND|COUNT|SUM|AVG|ROUND|MAX|MIN|date|julianday|strftime|DESC|ASC|CASE|WHEN|THEN|END)\b/g,'<span class="t-keyword">$1</span>').replace(/'([^']+)'/g,'<span class="t-string">\'$1\'</span>').replace(/(\d+)/g,'<span class="t-val">$1</span>')}
+async function runQuery(){
+  const q=document.getElementById('nlpInput').value.trim();if(!q)return;
+  const data=matchQuery(q);const term=document.getElementById('terminal');
+  term.innerHTML='';
+  function add(html,cls=''){const d=document.createElement('div');d.style.cssText=cls;d.innerHTML=html;term.appendChild(d);term.scrollTop=term.scrollHeight}
+  add(`<span style="color:var(--dim)">// Parsing: "${q}"</span>`);add('&nbsp;');
+  await delay(250);add('<span style="color:var(--dim)">// Step 1 — schema inspection</span>');
+  await delay(300);add('<span style="color:var(--green)">✓ tables resolved · claude-3-5-sonnet-20241022</span>');add('&nbsp;');
+  add('<span style="color:var(--dim)">// Step 2 — SQL generation</span>');await delay(600);
+  for(const line of data.sql.split('\n')){await delay(55);add(hl(line)||'&nbsp;')}
+  add('&nbsp;');add('<span style="color:var(--dim)">// Step 3 — safety validation</span>');await delay(300);
+  add(`<span class="t-badge badge-ok">✓ read-only</span><span class="t-badge badge-ok">✓ no DDL</span><span class="t-badge badge-acc">✓ whitelist pass</span>`);
+  add('&nbsp;');add('<span style="color:var(--dim)">// Step 4 — executing</span>');await delay(500);
+  add(`<span style="color:var(--green)">✓ ${data.n} row(s) returned in ${data.rt}</span>`);
+  const panel=document.getElementById('resultsPanel'),header=document.getElementById('resultsHeader'),table=document.getElementById('resultsTable');
+  panel.style.display='block';
+  header.innerHTML=`<span>Results</span><span class="t-badge badge-ok">${data.n} rows</span><span class="t-badge badge-acc">${data.rt}</span><span class="t-badge badge-acc">read-only</span>`;
+  table.innerHTML=`<thead><tr>${data.cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${data.rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>`;
+}
+</script>
+</body>
+</html>
