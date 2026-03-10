@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DQA — Data Quality Agent · Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0B080F;--bg2:#100C18;--bg3:#161020;--acc:#A855F7;--acc-d:rgba(168,85,247,.09);--text:#EDE8F8;--sub:#8878A8;--dim:#403858;--line:rgba(255,255,255,.07);--green:#34D88A;--coral:#FF6B6B;--yellow:#FFD93D}
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;overflow:hidden}
+    a{text-decoration:none;color:inherit}
+    nav{height:54px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);flex-shrink:0}
+    .nav-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:700}.nav-title em{color:var(--acc);font-style:italic}
+    .nav-back{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);transition:color .2s}.nav-back:hover{color:var(--text)}
+    .app{display:flex;flex:1;overflow:hidden}
+
+    /* Left sidebar */
+    .left{width:280px;background:var(--bg2);border-right:1px solid var(--line);padding:24px;display:flex;flex-direction:column;gap:18px;flex-shrink:0;overflow-y:auto}
+    .s-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--acc);letter-spacing:.18em;text-transform:uppercase;margin-bottom:10px}
+    .s-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;margin-bottom:6px}
+    .s-sub{color:var(--sub);font-size:13px;line-height:1.65}
+    .conn-box{background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:14px}
+    .conn-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+    .conn-string{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);word-break:break-all;line-height:1.6}
+    .conn-string span{color:var(--acc)}
+    .run-btn{width:100%;background:var(--acc);color:#fff;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:12px;border-radius:7px;border:none;cursor:pointer;transition:background .2s;letter-spacing:.04em}
+    .run-btn:hover{background:#c080ff}
+    .alert-item{border-radius:8px;padding:12px 14px;margin-bottom:8px;font-size:12px;line-height:1.55}
+    .alert-crit{background:rgba(255,107,107,.07);border:1px solid rgba(255,107,107,.2);color:var(--coral)}
+    .alert-warn{background:rgba(255,217,61,.07);border:1px solid rgba(255,217,61,.2);color:var(--yellow)}
+    .alert-ok{background:rgba(52,216,138,.07);border:1px solid rgba(52,216,138,.2);color:var(--green)}
+    .alert-title{font-family:'JetBrains Mono',monospace;font-size:10px;margin-bottom:4px;letter-spacing:.06em}
+
+    /* Main */
+    .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    .main-header{padding:16px 28px;border-bottom:1px solid var(--line);background:var(--bg2);display:flex;align-items:center;gap:20px;flex-shrink:0}
+    .mh-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:700}
+    .status-badge{font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 12px;border-radius:100px}
+    .status-idle{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--sub)}
+    .status-run{background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);color:var(--acc)}
+    .status-done{background:rgba(52,216,138,.1);border:1px solid rgba(52,216,138,.3);color:var(--green)}
+
+    .main-body{flex:1;overflow-y:auto;padding:24px}
+    .empty-msg{color:var(--sub);font-size:14px;text-align:center;margin-top:60px}
+
+    /* Table grid */
+    .table-card{background:var(--bg2);border:1px solid var(--line);border-radius:10px;margin-bottom:18px;overflow:hidden}
+    .table-head{padding:16px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+    .table-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:700}
+    .table-meta{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub)}
+    .col-table{width:100%;border-collapse:collapse}
+    .col-table th{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);padding:8px 22px;text-align:left;border-bottom:1px solid var(--line);letter-spacing:.08em;text-transform:uppercase}
+    .col-table td{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);padding:8px 22px;border-bottom:1px solid rgba(255,255,255,.03)}
+    .col-table tr:last-child td{border-bottom:none}
+    .col-table tr:hover td{background:rgba(255,255,255,.02)}
+    .sev{font-family:'JetBrains Mono',monospace;font-size:10px;padding:2px 9px;border-radius:4px}
+    .sev-crit{background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.2);color:var(--coral)}
+    .sev-warn{background:rgba(255,217,61,.1);border:1px solid rgba(255,217,61,.2);color:var(--yellow)}
+    .sev-ok{background:rgba(52,216,138,.1);border:1px solid rgba(52,216,138,.2);color:var(--green)}
+
+    .dbt-panel{background:var(--bg3);border:1px solid var(--line);border-radius:10px;padding:20px;margin-top:4px}
+    .dbt-title{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--acc);letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px}
+    .dbt-code{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--sub);line-height:1.75;white-space:pre}
+    .dbt-code .k{color:var(--acc)}.dbt-code .s{color:var(--green)}.dbt-code .c{color:var(--dim)}
+
+    .processing{display:flex;gap:8px;align-items:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--sub);padding:14px 0}
+    .p-dot{width:7px;height:7px;border-radius:50%;background:var(--acc);animation:pd 1.4s ease-in-out infinite}
+    .p-dot:nth-child(2){animation-delay:.2s}.p-dot:nth-child(3){animation-delay:.4s}
+    @keyframes pd{0%,60%,100%{opacity:.2}30%{opacity:1}}
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-title">DQA — <em>Data Quality Agent</em></div>
+  <a href="../index.html#projects" class="nav-back">← Back to portfolio</a>
+</nav>
+<div class="app">
+  <div class="left">
+    <div>
+      <div class="s-label">Interactive Demo</div>
+      <div class="s-title">Point. Profile. Fix.</div>
+      <p class="s-sub">Connect any PostgreSQL DB. The agent profiles every column, detects anomalies using statistics + AI, and generates dbt tests automatically.</p>
+    </div>
+    <div class="conn-box">
+      <div class="conn-label">Target Database</div>
+      <div class="conn-string">postgresql://<span>sample</span>:<span>***</span>@sample_db:5432/<span>ecommerce</span></div>
+    </div>
+    <button class="run-btn" onclick="runAnalysis()">▶ Run Analysis</button>
+    <div id="alertsPanel" style="display:none">
+      <div class="s-label">Findings</div>
+      <div class="alert-item alert-crit"><div class="alert-title">⚠ CRITICAL · 4 issues</div>Negative stock, extreme outlier, null emails, future dates</div>
+      <div class="alert-item alert-warn"><div class="alert-title">⚠ WARNING · 3 issues</div>Zero values in amount, inconsistent status casing, zero quantities</div>
+      <div class="alert-item alert-ok"><div class="alert-title">✓ HEALTHY · 2 tables</div>customers (partial), products (partial)</div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="main-header">
+      <div class="mh-title">Analysis Results</div>
+      <span class="status-badge status-idle" id="statusBadge">Idle</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);margin-left:auto" id="runMeta"></span>
+    </div>
+    <div class="main-body" id="mainBody">
+      <div class="empty-msg">Click <strong>Run Analysis</strong> to profile the sample e-commerce database.<br>Pre-seeded with intentional data quality issues.</div>
+    </div>
+  </div>
+</div>
+<script>
+const TABLES = [
+  {name:'customers', rows:'8,421', issues:[
+    {col:'email', check:'null_rate', val:'8.1%', sev:'warn', note:'~690 null emails — will break email marketing campaigns'},
+    {col:'signup_date', check:'future_dates', val:'14 rows', sev:'crit', note:'Date column contains future timestamps — likely data entry error'},
+    {col:'customer_id', check:'unique', val:'100%', sev:'ok', note:'Primary key validated — no duplicates'},
+  ]},
+  {name:'products', rows:'1,204', issues:[
+    {col:'stock_count', check:'negative_values', val:'min: -23', sev:'crit', note:'Negative inventory — impossible value, likely ETL bug (unsub from stock events)'},
+    {col:'price', check:'zero_values', val:'3 rows', sev:'warn', note:'Zero price on active products — check if free tier or data entry error'},
+    {col:'category', check:'cardinality', val:'5 values', sev:'ok', note:'Low cardinality — accepted_values test generated'},
+  ]},
+  {name:'orders', rows:'42,810', issues:[
+    {col:'amount', check:'outlier_IQR', val:'max: $999,999', sev:'crit', note:'Max is 1,249× the p99 value ($800) — extreme outlier row'},
+    {col:'amount', check:'zero_values', val:'112 rows', sev:'warn', note:'Zero values in amount column where median is $420 — invalid order records'},
+    {col:'status', check:'casing', val:'3 variants', sev:'warn', note:'COMPLETED / completed / Completed — breaks GROUP BY and reporting'},
+  ]},
+  {name:'order_items', rows:'98,344', issues:[
+    {col:'quantity', check:'zero_values', val:'88 rows', sev:'crit', note:'Zero quantity on order line items — invalid records, cannot ship 0 units'},
+    {col:'unit_price', check:'negative_values', val:'0 rows', sev:'ok', note:'No negative prices detected'},
+  ]},
+];
+
+const DBT_YAML = `<span class="c"># Auto-generated by DQA — drop into your dbt project</span>
+<span class="k">version</span>: 2
+<span class="k">models</span>:
+  - <span class="k">name</span>: <span class="s">customers</span>
+    <span class="k">columns</span>:
+      - <span class="k">name</span>: <span class="s">customer_id</span>
+        <span class="k">tests</span>: [<span class="s">not_null</span>, <span class="s">unique</span>]
+      - <span class="k">name</span>: <span class="s">email</span>
+        <span class="k">tests</span>: [<span class="s">not_null</span>]
+  - <span class="k">name</span>: <span class="s">products</span>
+    <span class="k">columns</span>:
+      - <span class="k">name</span>: <span class="s">stock_count</span>
+        <span class="k">tests</span>:
+          - <span class="s">dbt_utils.expression_is_true</span>:
+              <span class="k">expression</span>: <span class="s">"stock_count >= 0"</span>
+  - <span class="k">name</span>: <span class="s">orders</span>
+    <span class="k">columns</span>:
+      - <span class="k">name</span>: <span class="s">status</span>
+        <span class="k">tests</span>:
+          - <span class="s">accepted_values</span>:
+              <span class="k">values</span>: [<span class="s">completed</span>, <span class="s">pending</span>, <span class="s">cancelled</span>]`;
+
+async function runAnalysis() {
+  const body = document.getElementById('mainBody');
+  const badge = document.getElementById('statusBadge');
+  const meta = document.getElementById('runMeta');
+  badge.className = 'status-badge status-run';
+  badge.textContent = 'Running...';
+  body.innerHTML = '';
+
+  for (const step of ['Connecting to PostgreSQL...', 'Profiling 4 tables · 24 columns...', 'Running statistical anomaly detection...', 'Claude 3.5 Sonnet — AI enrichment (per-table)...', 'Cross-table synthesis · executive summary...', 'Generating dbt schema.yml...']) {
+    body.innerHTML += `<div class="processing"><div class="p-dot"></div><div class="p-dot"></div><div class="p-dot"></div><span>${step}</span></div>`;
+    await new Promise(r => setTimeout(r, 600));
+  }
+  await new Promise(r => setTimeout(r, 400));
+  body.innerHTML = '';
+  badge.className = 'status-badge status-done';
+  badge.textContent = '✓ Complete';
+  meta.textContent = `4 tables · 9 findings · 2.1s`;
+  document.getElementById('alertsPanel').style.display = 'block';
+
+  for (const tbl of TABLES) {
+    await new Promise(r => setTimeout(r, 200));
+    const card = document.createElement('div');
+    card.className = 'table-card';
+    const critCount = tbl.issues.filter(i=>i.sev==='crit').length;
+    const warnCount = tbl.issues.filter(i=>i.sev==='warn').length;
+    card.innerHTML = `
+      <div class="table-head">
+        <div class="table-name">${tbl.name}</div>
+        <div class="table-meta">${tbl.rows} rows · ${tbl.issues.length} checks</div>
+      </div>
+      <table class="col-table">
+        <thead><tr><th>Column</th><th>Check</th><th>Value</th><th>Severity</th><th>Interpretation</th></tr></thead>
+        <tbody>${tbl.issues.map(i=>`<tr>
+          <td>${i.col}</td><td>${i.check}</td><td>${i.val}</td>
+          <td><span class="sev sev-${i.sev}">${i.sev.toUpperCase()}</span></td>
+          <td style="color:var(--sub);font-size:11px;max-width:280px">${i.note}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    body.appendChild(card);
+  }
+
+  const dbtCard = document.createElement('div');
+  dbtCard.className = 'dbt-panel';
+  dbtCard.innerHTML = `<div class="dbt-title">↓ Generated dbt schema.yml</div><div class="dbt-code">${DBT_YAML}</div>`;
+  body.appendChild(dbtCard);
+}
+</script>
+</body>
+</html>

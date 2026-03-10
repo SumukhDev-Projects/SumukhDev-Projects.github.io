@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DocIntel — Document Intelligence · Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0F0E0A;--bg2:#161410;--bg3:#1C1A14;--acc:#F5A623;--acc-d:rgba(245,166,35,.09);--text:#F0EADE;--sub:#8C8070;--dim:#4A4030;--line:rgba(255,255,255,.07);--green:#52C97A;--coral:#FF6B6B}
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+    a{text-decoration:none;color:inherit}
+    nav{height:54px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);flex-shrink:0}
+    .nav-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:700}.nav-title em{color:var(--acc);font-style:italic}
+    .nav-back{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub);transition:color .2s}.nav-back:hover{color:var(--text)}
+
+    .layout{display:flex;flex:1;overflow:hidden}
+
+    /* Upload + schema area */
+    .left-col{width:320px;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:24px;flex-shrink:0;overflow-y:auto;gap:20px}
+    .col-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--acc);letter-spacing:.18em;text-transform:uppercase;margin-bottom:10px}
+    .col-title{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;margin-bottom:6px}
+    .col-sub{color:var(--sub);font-size:13px;line-height:1.65}
+
+    .upload-zone{border:1.5px dashed var(--line);border-radius:10px;padding:28px 16px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg3)}
+    .upload-zone.loaded{border-color:rgba(245,166,35,.3);background:var(--acc-d)}
+    .upload-zone:hover{border-color:rgba(245,166,35,.3)}
+    .upload-icon{font-size:28px;margin-bottom:8px}
+    .upload-hint{font-size:12px;color:var(--sub);line-height:1.5}
+    .upload-hint strong{color:var(--text)}
+
+    .schema-builder{background:var(--bg3);border:1px solid var(--line);border-radius:10px;padding:18px}
+    .schema-field{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;font-size:12px;margin-bottom:6px;background:rgba(255,255,255,.03);border:1px solid var(--line)}
+    .field-name{font-family:'JetBrains Mono',monospace;color:var(--acc);flex:1}
+    .field-type{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub)}
+    .field-req{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+
+    .template-row{display:flex;gap:6px;margin-bottom:16px}
+    .tpl-btn{flex:1;background:var(--bg3);border:1px solid var(--line);border-radius:6px;padding:7px 8px;font-size:11px;color:var(--sub);cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .2s;text-align:center}
+    .tpl-btn:hover,.tpl-btn.active{border-color:rgba(245,166,35,.3);color:var(--acc)}
+
+    .extract-btn{width:100%;background:var(--acc);color:#000;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;padding:12px;border-radius:7px;border:none;cursor:pointer;transition:background .2s;letter-spacing:.04em}
+    .extract-btn:hover{background:#ffc04a}
+
+    /* Results */
+    .right-col{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    .results-area{flex:1;overflow-y:auto;padding:28px}
+    .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--sub);text-align:center;gap:12px}
+    .empty-icon{font-size:48px;opacity:.3}
+    .empty-text{font-size:14px;line-height:1.65;max-width:280px}
+
+    .doc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+    .doc-name{font-family:'Playfair Display',serif;font-size:18px;font-weight:700}
+    .doc-meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--sub)}
+    .pass-badge{font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 12px;border-radius:100px;background:rgba(82,201,122,.1);border:1px solid rgba(82,201,122,.25);color:var(--green)}
+
+    .field-results{display:flex;flex-direction:column;gap:12px}
+    .field-card{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:20px 22px;transition:border-color .2s}
+    .field-card:hover{border-color:rgba(255,255,255,.12)}
+    .fc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .fc-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--sub);letter-spacing:.06em;text-transform:uppercase}
+    .conf-chip{font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 10px;border-radius:100px}
+    .conf-high{background:rgba(82,201,122,.1);border:1px solid rgba(82,201,122,.25);color:var(--green)}
+    .conf-mid{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.25);color:var(--acc)}
+    .conf-low{background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.25);color:var(--coral)}
+    .fc-value{font-size:16px;color:var(--text);font-weight:500;margin-bottom:8px}
+    .conf-bar-wrap{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--sub)}
+    .conf-bar{flex:1;height:3px;background:rgba(255,255,255,.06);border-radius:100px;overflow:hidden}
+    .conf-bar-fill{height:100%;border-radius:100px;transition:width .6s}
+    .export-row{padding:16px 28px;border-top:1px solid var(--line);display:flex;gap:10px;background:var(--bg2);flex-shrink:0}
+    .exp-btn{font-family:'JetBrains Mono',monospace;font-size:11px;padding:9px 18px;border-radius:6px;border:1px solid var(--line);color:var(--sub);cursor:pointer;transition:all .2s;background:none}
+    .exp-btn:hover{border-color:rgba(245,166,35,.3);color:var(--acc)}
+    .processing{display:flex;gap:8px;align-items:center;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--sub);padding:12px 0}
+    .proc-dot{width:7px;height:7px;border-radius:50%;background:var(--acc);animation:proc 1.4s ease-in-out infinite}
+    .proc-dot:nth-child(2){animation-delay:.2s}.proc-dot:nth-child(3){animation-delay:.4s}
+    @keyframes proc{0%,60%,100%{opacity:.2}30%{opacity:1}}
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-title">DocIntel — <em>Document Intelligence</em></div>
+  <a href="../index.html#projects" class="nav-back">← Back to portfolio</a>
+</nav>
+<div class="layout">
+  <div class="left-col">
+    <div>
+      <div class="col-label">Interactive Demo</div>
+      <div class="col-title">Upload. Define. Extract.</div>
+      <p class="col-sub">Upload any PDF. Define what fields to extract. Get structured JSON with per-field confidence scores.</p>
+    </div>
+
+    <div class="upload-zone" id="uploadZone" onclick="loadDocument()">
+      <div class="upload-icon" id="uploadIcon">📄</div>
+      <div class="upload-hint" id="uploadHint"><strong>Click to load sample document</strong><br>invoice · contract · report · application</div>
+    </div>
+
+    <div>
+      <div class="col-label">Extraction Schema</div>
+      <div class="template-row">
+        <button class="tpl-btn active" id="tpl-invoice" onclick="setTemplate('invoice')">Invoice</button>
+        <button class="tpl-btn" id="tpl-contract" onclick="setTemplate('contract')">Contract</button>
+        <button class="tpl-btn" id="tpl-resume" onclick="setTemplate('resume')">Resume</button>
+      </div>
+      <div class="schema-builder">
+        <div id="schemaFields"></div>
+      </div>
+    </div>
+
+    <button class="extract-btn" onclick="runExtraction()">⚡ Run AI Extraction</button>
+  </div>
+
+  <div class="right-col">
+    <div class="results-area" id="resultsArea">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-text">Load a document and run extraction to see AI-parsed fields with confidence scores.</div>
+      </div>
+    </div>
+    <div class="export-row" id="exportRow" style="display:none">
+      <button class="exp-btn" onclick="showExport('json')">↓ JSON</button>
+      <button class="exp-btn" onclick="showExport('csv')">↓ CSV</button>
+      <button class="exp-btn" onclick="showExport('excel')">↓ Excel</button>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--sub);margin-left:auto">Results stored in PostgreSQL audit log</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const TEMPLATES = {
+  invoice: [
+    {name:'invoice_number', type:'string', req:true, val:'INV-2024-08847', conf:98},
+    {name:'vendor_name', type:'string', req:true, val:'Apex Solutions LLC', conf:95},
+    {name:'invoice_date', type:'date', req:true, val:'2024-10-14', conf:97},
+    {name:'due_date', type:'date', req:true, val:'2024-11-14', conf:92},
+    {name:'total_amount', type:'currency', req:true, val:'$14,850.00', conf:99},
+    {name:'line_items_count', type:'integer', req:false, val:'7', conf:88},
+    {name:'payment_terms', type:'string', req:false, val:'Net 30', conf:76},
+    {name:'po_number', type:'string', req:false, val:'PO-88214', conf:61},
+  ],
+  contract: [
+    {name:'contract_id', type:'string', req:true, val:'CTR-2024-0042', conf:96},
+    {name:'party_a', type:'string', req:true, val:'Meridian Enterprises Inc.', conf:94},
+    {name:'party_b', type:'string', req:true, val:'DataBridge Analytics Ltd.', conf:93},
+    {name:'effective_date', type:'date', req:true, val:'2024-01-01', conf:98},
+    {name:'expiry_date', type:'date', req:true, val:'2025-12-31', conf:97},
+    {name:'contract_value', type:'currency', req:true, val:'$240,000.00', conf:91},
+    {name:'jurisdiction', type:'string', req:false, val:'State of Illinois', conf:85},
+    {name:'termination_clause', type:'string', req:false, val:'60-day written notice', conf:68},
+  ],
+  resume: [
+    {name:'full_name', type:'string', req:true, val:'Sumukh Dev', conf:99},
+    {name:'email', type:'email', req:true, val:'sharmasumukh10@gmail.com', conf:99},
+    {name:'years_experience', type:'integer', req:true, val:'3', conf:85},
+    {name:'current_role', type:'string', req:true, val:'Data Analyst', conf:94},
+    {name:'highest_degree', type:'string', req:true, val:'MS Engineering Management', conf:97},
+    {name:'primary_skills', type:'array', req:false, val:'Python, SQL, Tableau, AWS, LangChain', conf:88},
+    {name:'linkedin_url', type:'url', req:false, val:'linkedin.com/in/sumukhdev', conf:92},
+  ]
+};
+
+let currentTemplate = 'invoice';
+let documentLoaded = false;
+
+function renderSchema() {
+  const fields = TEMPLATES[currentTemplate];
+  document.getElementById('schemaFields').innerHTML = fields.map(f=>`
+    <div class="schema-field">
+      <div class="field-name">${f.name}</div>
+      <div class="field-type">${f.type}</div>
+      ${f.req ? '<div class="field-req"></div>' : '<div style="width:6px"></div>'}
+    </div>`).join('');
+}
+
+function setTemplate(t) {
+  currentTemplate = t;
+  document.querySelectorAll('.tpl-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tpl-'+t).classList.add('active');
+  renderSchema();
+}
+
+function loadDocument() {
+  const zone = document.getElementById('uploadZone');
+  const icon = document.getElementById('uploadIcon');
+  const hint = document.getElementById('uploadHint');
+  documentLoaded = true;
+  zone.classList.add('loaded');
+  icon.textContent = '✅';
+  hint.innerHTML = `<strong>sample_${currentTemplate}.pdf loaded</strong><br>3 pages · 847KB`;
+}
+
+async function runExtraction() {
+  if (!documentLoaded) { loadDocument(); await new Promise(r=>setTimeout(r,300)); }
+  const area = document.getElementById('resultsArea');
+  const empty = document.getElementById('emptyState');
+  empty && (empty.style.display = 'none');
+  area.innerHTML = `<div class="processing"><div class="proc-dot"></div><div class="proc-dot"></div><div class="proc-dot"></div><span>Claude 3.5 Sonnet — two-pass extraction running...</span></div>`;
+  await new Promise(r=>setTimeout(r,1400));
+  area.innerHTML += `<div class="processing"><span style="color:var(--acc)">↺ Validation pass — checking low-confidence fields...</span></div>`;
+  await new Promise(r=>setTimeout(r,900));
+
+  const fields = TEMPLATES[currentTemplate];
+  const docNames = {invoice:'INV-2024-08847.pdf', contract:'CTR-2024-0042.pdf', resume:'resume_sumukhdev.pdf'};
+
+  area.innerHTML = `
+    <div class="doc-header">
+      <div>
+        <div class="doc-name">${docNames[currentTemplate]}</div>
+        <div class="doc-meta">Extraction complete · ${fields.length} fields · two-pass validation</div>
+      </div>
+      <span class="pass-badge">✓ 2-pass verified</span>
+    </div>
+    <div class="field-results" id="fieldResults"></div>`;
+
+  const fr = document.getElementById('fieldResults');
+  for (const f of fields) {
+    await new Promise(r=>setTimeout(r,120));
+    const confCls = f.conf >= 85 ? 'conf-high' : f.conf >= 70 ? 'conf-mid' : 'conf-low';
+    const fillColor = f.conf >= 85 ? '#52C97A' : f.conf >= 70 ? '#F5A623' : '#FF6B6B';
+    const card = document.createElement('div');
+    card.className = 'field-card';
+    card.innerHTML = `
+      <div class="fc-top">
+        <div class="fc-label">${f.name}</div>
+        <span class="conf-chip ${confCls}">${f.conf}% confidence</span>
+      </div>
+      <div class="fc-value">${f.val}</div>
+      <div class="conf-bar-wrap">
+        <span>${f.type}</span>
+        <div class="conf-bar"><div class="conf-bar-fill" style="width:0%;background:${fillColor}"></div></div>
+        <span>${f.req ? '● required' : '○ optional'}</span>
+      </div>`;
+    fr.appendChild(card);
+    setTimeout(() => { card.querySelector('.conf-bar-fill').style.width = f.conf+'%'; }, 50);
+  }
+  document.getElementById('exportRow').style.display = 'flex';
+}
+
+function showExport(fmt) {
+  const msgs = {json:'📋 JSON copied to clipboard',csv:'📋 CSV ready for download',excel:'📋 Excel file generated'};
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = '✓ Done';
+  btn.style.color = 'var(--green)';
+  setTimeout(() => { btn.textContent = orig; btn.style.color=''; }, 2000);
+}
+
+renderSchema();
+</script>
+</body>
+</html>
